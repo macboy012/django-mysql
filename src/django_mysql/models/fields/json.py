@@ -1,6 +1,6 @@
 import json
 
-from django.core import checks
+from django.core import checks, exceptions
 from django.db.models import Field, IntegerField, Transform
 
 from django_mysql import forms
@@ -194,6 +194,15 @@ class JSONField(Field):
         defaults = {"form_class": forms.JSONField}
         defaults.update(kwargs)
         return super().formfield(**defaults)
+
+    def to_python(self, value):
+        if isinstance(value, str):
+            try:
+                return self.json_decoder.decode(value)
+            # Can't be more specific because the decoder could be overridden
+            except Exception as e:
+                raise exceptions.ValidationError("Unable to decode json, got error %s" % e)
+        return value
 
 
 class JSONLength(Transform):
